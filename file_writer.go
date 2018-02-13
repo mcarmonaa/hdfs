@@ -3,6 +3,7 @@ package hdfs
 import (
 	"io"
 	"os"
+	"strings"
 
 	hdfs "github.com/colinmarc/hdfs/protocol/hadoop_hdfs"
 	"github.com/colinmarc/hdfs/rpc"
@@ -77,6 +78,18 @@ func (c *Client) CreateFile(name string, replication int, blockSize int64, perm 
 		replication: replication,
 		blockSize:   blockSize,
 	}, nil
+}
+
+// AppendOrCreate works in the same way Append does, but it creates the file if not exist
+func (c *Client) AppendOrCreate(name string) (*FileWriter, error) {
+	_, err := c.getFileInfo(name)
+	if err != nil && strings.Contains(err.Error(), "file does not exist") {
+		if err := c.CreateEmptyFile(name); err != nil {
+			return nil, err
+		}
+	}
+
+	return c.Append(name)
 }
 
 // Append opens an existing file in HDFS and returns an io.WriteCloser for
